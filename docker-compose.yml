@@ -1,0 +1,65 @@
+services:
+  # Zookeeper
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    container_name: zookeeper
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    networks:
+      - wikimedia-net
+
+  # Kafka
+  kafka:
+    image: bitnami/kafka:3.3.2
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    environment:
+      - KAFKA_BROKER_ID=${KAFKA_BROKER_ID}
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:${ZOOKEEPER_PORT}
+      - KAFKA_LISTENERS=PLAINTEXT://:${KAFKA_PORT}
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://${KAFKA_ADVERTISED_HOST}:${KAFKA_PORT}
+      - KAFKA_CFG_KRAFT_MODE=false     
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    ports:
+      - "${KAFKA_PORT}:${KAFKA_PORT}"
+    networks:
+      - wikimedia-net
+
+  # Cassandra
+  cassandra:
+    image: cassandra:4.1
+    container_name: cassandra
+    ports:
+      - "${CASSANDRA_PORT}:${CASSANDRA_PORT}"
+    volumes:
+      - ./cassandra/init.cql:/docker-entrypoint-initdb.d/init.cql
+    networks:
+      - wikimedia-net
+
+  # Spark Master
+  spark-master:
+    image: bitnami/spark:latest
+    container_name: spark-master
+    environment:
+      - SPARK_MODE=master
+    ports:
+      - "${SPARK_UI_PORT}:${SPARK_UI_PORT}"
+    networks:
+      - wikimedia-net
+
+  # Spark Worker
+  spark-worker:
+    image: bitnami/spark:latest
+    container_name: spark-worker
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=${SPARK_MASTER_URL}
+    networks:
+      - wikimedia-net
+
+networks:
+  wikimedia-net:
+    driver: bridge
