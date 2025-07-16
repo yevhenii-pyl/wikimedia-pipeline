@@ -60,6 +60,17 @@ services:
     networks:
       - wikimedia-net
 
+  generator:
+    build:
+      context: ./generator
+    container_name: generator
+    depends_on:
+      - kafka
+    env_file:
+      - ./generator/.env
+    networks:
+      - wikimedia-net
+
 networks:
   wikimedia-net:
     driver: bridge
