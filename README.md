@@ -52,7 +52,7 @@ input
 processed
 ```
 
-### 5. Cassandra 
+### 4. Cassandra 
 
 Apply schema:
 ```bash
@@ -78,7 +78,17 @@ docker exec -it cassandra cqlsh -e "USE wikimedia; DESCRIBE TABLES;"
 Expected result:
 `page_creations`
 
-### 6. Spark Master UI
+### 5. Spark Master UI
 
 Open http://localhost:8080 in your browser.
 You should see the Spark Master web UI.
+
+### 6. Final check
+
+- Make sure the topics are created (step 3)
+- Make sure DB table is created (step 4)
+- Check that all containers are alive
+- run
+```bash
+docker exec -it cassandra cqlsh -e "USE wikimedia; SELECT * FROM page_creations LIMIT 10;"
+``` 

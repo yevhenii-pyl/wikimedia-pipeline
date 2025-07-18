@@ -37,26 +37,50 @@ services:
     networks:
       - wikimedia-net
 
-  # Spark Master
   spark-master:
-    image: bitnami/spark:latest
-    container_name: spark-master
+    build:
+      context: ./spark
+    ports:
+      - "8080:8080"
     environment:
       - SPARK_MODE=master
-    ports:
-      - "${SPARK_UI_PORT}:${SPARK_UI_PORT}"
     networks:
       - wikimedia-net
 
-  # Spark Worker
   spark-worker:
-    image: bitnami/spark:latest
-    container_name: spark-worker
+    build:
+      context: ./spark
     depends_on:
       - spark-master
     environment:
       - SPARK_MODE=worker
-      - SPARK_MASTER_URL=${SPARK_MASTER_URL}
+      - SPARK_MASTER_URL=spark://spark-master:7077
+    networks:
+      - wikimedia-net
+
+  spark-job:
+    build:
+      context: ./spark-job
+    depends_on:
+      - spark-master
+      - spark-worker
+      - kafka
+      - cassandra
+    environment:
+      - SPARK_MODE=client
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - KAFKA_TOPIC_INPUT=input
+      - CASSANDRA_HOST=cassandra
+      - CASSANDRA_PORT=9042
+      - CASSANDRA_KEYSPACE=wikimedia
+      - CASSANDRA_TABLE=page_creations
+      - BATCH_DURATION=300
+      - SPARK_MASTER_URL=spark://spark-master:7077
+    command:
+      /opt/bitnami/spark/bin/spark-submit
+      --master spark://spark-master:7077
+      --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.1,com.datastax.spark:spark-cassandra-connector_2.12:3.4.1
+      /app/spark_job.py
     networks:
       - wikimedia-net
 
